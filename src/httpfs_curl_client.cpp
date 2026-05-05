@@ -257,15 +257,15 @@ public:
 		if (!request_info->header_collection.empty() &&
 		    request_info->header_collection.back().HasHeader("content-length")) {
 			try {
+				// Use stoull (not stoi) — Content-Length can exceed INT_MAX for files >2GB.
 				const idx_t content_length_received =
-				    std::stoi(request_info->header_collection.back().GetHeaderValue("content-length"));
+				    std::stoull(request_info->header_collection.back().GetHeaderValue("content-length"));
 				if (bytes_received != content_length_received) {
 					// Something is off, might happen in case of unreliable network
+					// TODO: consider logging this
 				}
-			} catch (const std::exception &e) {
-				auto raw = request_info->header_collection.back().GetHeaderValue("content-length");
-				fprintf(stderr, "httpfs: unparseable content-length header: '%s' (%s), using body size %zu\n",
-				        raw.c_str(), e.what(), (size_t)bytes_received);
+			} catch (const std::exception &) {
+				// Content-Length header contains a non-numeric value — skip validation.
 			}
 		}
 
